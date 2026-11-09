@@ -1,0 +1,44 @@
+# Python caches and build output
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local Python environments
+.venv/
+venv/
+env/
+
+# Secrets and machine-specific settings
+.env
+.env.*
+!.env.example
+
+# Notebook checkpoints (keep notebooks tracked)
+.ipynb_checkpoints/
+
+# Generated experiment outputs
+/results/
+/checkpoints/
+/runs/
+/wandb/
+*.pt
+*.pth
+*.ckpt
+*.log
+
+# Large market data arrays (keep ticker and sector CSVs tracked)
+*.npy
+*.npz
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,25 @@
+{
+  "npy_tickers": 474,
+  "csv_rows": 505,
+  "matched_tickers": 474,
+  "sectors_for_matched_tickers": 11,
+  "n_phases": 12,
+  "phase_1": {
+    "number": 1,
+    "train_start": "2016-01-01",
+    "train_end": "2016-10-31",
+    "val_start": "2016-11-01",
+    "val_end": "2016-12-31",
+    "test_start": "2017-01-01",
+    "test_end": "2017-06-13"
+  },
+  "phase_12": {
+    "number": 12,
+    "train_start": "2020-11-28",
+    "train_end": "2021-09-28",
+    "val_start": "2021-09-29",
+    "val_end": "2021-11-28",
+    "test_start": "2021-11-29",
+    "test_end": "2022-05-01"
+  }
+}

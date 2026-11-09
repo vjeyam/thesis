@@ -1,0 +1,164 @@
+from pathlib import Path
+
+import pandas as pd
+
+from .backtest import BacktestConfig, backtest_predictions
+from .config import Config
+from .data import load_market_data
+from .phases import build_paper_phases
+
+
+def main():
+    cfg = Config()
+
+    market = load_market_data(
+        cfg.data_path,
+        cfg.ticker_path,
+    )
+
+    phases = build_paper_phases()
+
+    model_name = "vanilla"
+    results_dir = Path("results") / model_name
+
+    if not results_dir.exists():
+        raise FileNotFoundError(
+            f"Could not find {results_dir}. "
+            "Run the vanilla model first."
+        )
+
+    bt_cfg = BacktestConfig(
+        initial_nav=1.0,
+        top_k=cfg.top_k,
+        trailing_stop=0.07,
+        take_profit=0.20,
+        max_holding_days=cfg.lookahead,
+    )
+
+    summary_path = results_dir / "phase_summary.csv"
+
+    if summary_path.exists():
+        summary_df = pd.read_csv(summary_path)
+    else:
+        summary_df = pd.DataFrame(
+            {"phase": [phase.number for phase in phases]}
+        )
+
+    returns = []
+
+    for phase in phases:
+        pred_path = results_dir / f"phase_{phase.number:02d}_predictions.csv"
+
+        if not pred_path.exists():
+            print(
+                f"Skipping phase {phase.number}: "
+                f"{pred_path} not found"
+            )
+            continue
+
+        print(f"\nRecomputing phase {phase.number}...")
+
+        preds = pd.read_csv(pred_path)
+
+        phase_return, equity = backtest_predictions(
+            predictions=preds,
+            market=market,
+            cfg=bt_cfg,
+        )
+
+        returns.append(
+            {
+                "phase": phase.number,
+                "Return": phase_return,
+            }
+        )
+
+        equity_path = (
+            results_dir
+            / f"phase_{phase.number:02d}_equity.csv"
+        )
+
+        equity.to_csv(
+            equity_path,
+            index=False,
+        )
+
+        print(
+            f"Phase {phase.number} Return: "
+            f"{phase_return:.6f}"
+        )
+
+    if not returns:
+        raise RuntimeError(
+            "No prediction files were found."
+        )
+
+    return_df = pd.DataFrame(returns)
+
+    if "phase" not in summary_df.columns:
+        raise ValueError(
+            f"{summary_path} is missing a 'phase' column."
+        )
+
+    # Remove the old Return column so there is no ambiguity.
+    if "Return" in summary_df.columns:
+        summary_df = summary_df.drop(
+            columns=["Return"]
+        )
+
+    summary_df = summary_df.merge(
+        return_df,
+        on="phase",
+        how="left",
+    )
+
+    # Put Return near the front of the table.
+    columns = list(summary_df.columns)
+
+    if "Return" in columns:
+        columns.remove("Return")
+
+    if "phase" in columns:
+        phase_index = columns.index("phase")
+        columns.insert(
+            phase_index + 1,
+            "Return",
+        )
+    else:
+        columns.insert(0, "Return")
+
+    summary_df = summary_df[columns]
+
+    summary_df.to_csv(
+        summary_path,
+        index=False,
+    )
+
+    mean_return = return_df["Return"].mean()
+
+    print(
+        "\n=== Recomputed mean Return ==="
+    )
+    print(f"{mean_return:.6f}")
+
+    print(
+        "\nUpdated:"
+        f"\n  {summary_path}"
+    )
+
+    print(
+        "\nSaved equity curves:"
+    )
+
+    for phase in return_df["phase"]:
+        print(
+            "  "
+            + str(
+                results_dir
+                / f"phase_{int(phase):02d}_equity.csv"
+            )
+        )
+
+
+if __name__ == "__main__":
+    main()
